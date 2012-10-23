@@ -1,0 +1,180 @@
+
+<!DOCTYPE html>
+<head>	
+	<script type="text/javascript" src="http://cdn.craftycomponents.com/crafty-dev-develop-uncompressed.js"></script>
+	<style>
+		body, html { 
+			margin:0; 
+			padding: 0; 
+			overflow:hidden; 
+			font-family:Arial; 
+			font-size:20px, 
+
+		}
+		#cr-stage { 
+			color:white;
+			cursor:none;
+			margin:0 auto;
+		}
+	
+	</style>
+</head>
+<body>
+<script type="text/javascript">
+	Crafty.init(800, 600);
+	Crafty.background('rgb(0,0,0)');
+
+	var score = 0, lives = 3, blocksCount = 0;
+
+
+	Crafty.scene("game", function() {
+		
+		//-----------------------Box-----------------------------
+		Crafty.sprite(49, "img/sprites.png", {
+    			pink: [0, 0],
+    			yellow: [0, 1],
+    			red: [1, 0],
+    			green: [1, 1]
+    		});
+
+		Crafty.sprite(107, "img/sprites.png", {
+				PaddleSprite: [1,0]
+		});
+		Crafty.sprite(19, "img/sprites.png", {
+				BallSprite: [0,5]
+		});
+
+		Crafty.c("Box, Collision")
+
+		//-----------------------Background-----------------------------
+		Crafty.e("2D, DOM, Image")
+             .attr({w: Crafty.viewport.width, h: Crafty.viewport.height})
+             .image("img/bg.png", "repeat");
+
+		for(var ix = 30; ix < 700; ix += 70)
+			for(var iy = 50; iy < 350; iy+=50, blocksCount++) 
+				Crafty.e("Box, 2D, DOM, red").attr({ x: ix, y: iy, z:1 });
+
+	
+        //-----------------------Paddle-----------------------------
+		var pad = Crafty.e("Paddle, 2D, DOM, Multiway, Collision, PaddleSprite")
+			.attr({ x: 400, y: 570, w: 107, h: 23 })
+			.multiway(8, { A: 180, D: 0, L:-45})
+			.bind('Moved', function () {
+				
+				if(ball.isMoving == false){
+					ball.x = this.x + pad.w/2 - 8;
+					ball.y = this.y - pad.h + 3;
+				}
+				
+				if(this.x <= 0) this.x = 0; 
+				if (this.x > 700) this.x = 700;
+	
+			});
+
+		//-----------------------Ball-----------------------------
+		var ball = Crafty.e("2D, DOM, Collision, BallSprite")
+			.attr({ x: pad.x + pad.w/2 - 8, 
+				y: pad.y - pad.h + 3,
+				w: 19, 
+				h: 19, 
+				dX: Crafty.math.randomInt(4, 7), 
+				dY: Crafty.math.randomInt(4, 7),
+				isMoving: false
+				})
+			.bind('EnterFrame', function () {				
+				if(this.isMoving == false) return;
+
+				this.x += this.dX;
+				this.y += this.dY;
+
+				if(this.y <= 0) this.dY *= -1;
+				
+				if (this.y > 600){
+					Crafty("Lives").each(function () { 
+					this.text("Lives: " + --lives) 
+
+					if(lives < 0) gameOver();
+
+				});
+					
+					this.x = pad.x + pad.w/2 - 8;  
+					this.y = pad.y - pad.h + 3;
+					
+					this.dY *= -1;
+					this.dY *= 1.02;
+					this.dX *= 1.02
+					this.isMoving = false;
+
+				}
+
+				if (this.x > 790 || this.x <= 0)
+					this.dX *= -1;
+	
+			})
+			.onHit('Paddle', function () { this.dY *= -1;})
+			.onHit('Box', function(callinfo) {
+				this.dY *= -1;
+				var block = callinfo[0].obj;
+				block.destroy();
+				blocksCount--;
+
+				if(blocksCount == 0) win(); 
+				
+				Crafty("Score").each(function () { 
+					this.text("Score: " + ++score); }) 
+				})
+
+
+		Crafty.e("2D, DOM, Mouse")
+    		.attr({ w: 800, h: 600 })
+    		.bind('Click', function() { ball.isMoving = true; })
+    		.areaMap([0,0], [800,0], [800,600], [0,600])
+
+		//-----------------------Score-----------------------------
+		Crafty.e("Lives, DOM, 2D, Text")
+			.attr({ x: 20, y: 20, w: 100, h: 20, lives: 3 })
+			.text("Lives: 3");
+
+		Crafty.e("Score, DOM, 2D, Text")
+			.attr({ x: 580, y: 20, w: 100, h: 20, score: 0 })
+			.text("Score: 0");
+
+		function gameOver() { Crafty.scene("end"); }
+		function win() { Crafty.scene("win"); }
+	})
+
+	
+	Crafty.e("2D, DOM, Color, Text")
+			.color('rgb(255,0,0)')
+			.attr({x:350, y:220, w: 300 })
+			.text("Breakout");
+
+	Crafty.scene("end", function(){
+		Crafty.e("2D, DOM, Color, Text")
+			.color('rgb(255,0,0)')
+			.attr({x:350, y:220, w: 300 })
+			.text("You Are A Loser, haha")
+
+	})
+
+	Crafty.scene("win", function(){
+		Crafty.e("2D, DOM, Color, Text")
+			.color('rgb(255,0,0)')
+			.attr({x:350, y:220, w: 300 })
+			.text("You Are a Nerd, with score: " + score)
+
+	})
+
+
+
+	Crafty.e("2D, DOM, Mouse").
+	attr({x:0, y:0, h:600, w:800 }).
+	bind("Click", function() { 
+		Crafty.scene("game");
+
+	})
+</script>
+
+</body>
+</html>
